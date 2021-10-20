@@ -1,5 +1,7 @@
 import 'package:chat_app/Methods.dart';
+import 'package:chat_app/Screens/ChatRoom.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class HomeScreeen extends StatefulWidget {
@@ -8,17 +10,27 @@ class HomeScreeen extends StatefulWidget {
 }
 
 class _HomeScreeenState extends State<HomeScreeen> {
-  Map<String, dynamic>? userMap;
+  Map<String, dynamic> userMap;
   bool isLoading = false;
   final TextEditingController _search = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  String chatRoomId(String user1, String user2) {
+    if (user1[0].toLowerCase().codeUnits[0] >
+        user2.toLowerCase().codeUnits[0]) {
+      return "$user1$user2";
+    } else {
+      return "$user2$user1";
+    }
+  }
 
   void onSearch() async {
-    FirebaseFirestore _fireStore = FirebaseFirestore.instance;
     setState(() {
       isLoading = true;
     });
 
-    await _fireStore
+    await _firestore
         .collection('users')
         .where("email", isEqualTo: _search.text)
         .get()
@@ -78,17 +90,28 @@ class _HomeScreeenState extends State<HomeScreeen> {
                 SizedBox(height: size.height / 30),
                 userMap != null
                     ? ListTile(
-                        onTap: () {},
+                        onTap: () {
+                          String roomId = chatRoomId(
+                              _auth.currentUser.displayName, userMap['name']);
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ChatRoom(
+                                chatRoomId: roomId,
+                                userMap: userMap,
+                              ),
+                            ),
+                          );
+                        },
                         leading: Icon(Icons.account_box, color: Colors.black),
                         title: Text(
-                          userMap?['name'],
+                          userMap['name'],
                           style: TextStyle(
                             color: Colors.black,
                             fontSize: 17,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        subtitle: Text(userMap?['email']),
+                        subtitle: Text(userMap['email']),
                         trailing: Icon(Icons.chat, color: Colors.black),
                       )
                     : Container(),
